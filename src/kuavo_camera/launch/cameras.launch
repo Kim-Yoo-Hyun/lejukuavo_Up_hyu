@@ -1,0 +1,61 @@
+<launch>
+  <arg name="has_head" default="true" />
+  <arg name="has_left_wrist" default="true" />
+  <arg name="has_right_wrist" default="true" />
+  <arg name="left_wrist_camera_sn" default="$(env LEFT_WRIST_CAMERA_SERIAL_NO)" if="$(arg has_left_wrist)" />
+  <arg name="left_wrist_camera_sn" default=" " unless="$(arg has_left_wrist)" />
+  <arg name="right_wrist_camera_sn" default="$(env RIGHT_WRIST_CAMERA_SERIAL_NO)" if="$(arg has_right_wrist)" />
+  <arg name="right_wrist_camera_sn" default=" " unless="$(arg has_right_wrist)" />
+  <arg name="rviz" default="true" />
+  <arg name="head_camera_type" default="orbbec_camera" /> <!-- orbbec_camera, rs_camera,...-->
+
+  <group if ="$(arg has_head)">
+    <group if="$(eval head_camera_type == 'orbbec_camera')">
+      <include file="$(find orbbec_camera)/launch/gemini_330_series.launch" >
+        <arg name="camera_name" value="head_camera" />
+        <arg name="color_fps" value="60" />
+      </include>
+    </group>
+    <group if="$(eval head_camera_type == 'rs_camera')">
+      <include file="$(find realsense2_camera)/launch/rs_camera.launch" >
+        <arg name="color_width"   value="640"/>
+        <arg name="color_height"  value="480"/>
+        <arg name="color_fps"     value="30"/>
+        <arg name="depth_width"   value="848"/>
+        <arg name="depth_height"  value="480"/>
+        <arg name="depth_fps"     value="30"/>
+        <arg name="enable_infra"        default="false"/>
+        <arg name="enable_infra1"       default="false"/>
+        <arg name="enable_infra2"       default="false"/>
+        <arg name="enable_sync"   value="true"/>
+        <arg name="align_depth"   value="true"/>
+        <arg name="enable_pointcloud"   value="false"/>
+        <arg name="camera" value="head_camera" />
+        <arg name="tf_prefix" value="head_camera" />
+        <arg name="device_type" value="d4.5" /> <!-- Intel RealSense D435 -->
+      </include>
+    </group>
+  </group>
+
+  <group if="$(arg has_left_wrist)">
+    <include file="$(find realsense2_camera)/launch/rs_camera.launch" >
+      <arg name="camera" value="left_wrist_camera" />
+      <arg name="tf_prefix" value="left_wrist_camera" />
+      <arg name="serial_no" value="$(arg left_wrist_camera_sn)" />
+    </include>
+   </group>
+
+  <group if="$(arg has_right_wrist)">
+    <include file="$(find realsense2_camera)/launch/rs_camera.launch" >
+      <arg name="camera" value="right_wrist_camera" />
+      <arg name="tf_prefix" value="right_wrist_camera" />
+      <arg name="serial_no" value="$(arg right_wrist_camera_sn)" />
+    </include>
+  </group>
+
+  <group if="$(arg rviz)">
+      <arg name="rvizconfig" default="$(find kuavo_camera)/rviz/camera.rviz" />
+      <node pkg="rviz" type="rviz" name="camera_rviz" args="-d $(arg rvizconfig)" output="screen" />
+  </group>
+
+</launch>

@@ -1,0 +1,126 @@
+<launch>
+    <!-- 保留旧版本参数 适配yoloV8等案例 -->
+    <arg name = "use_orbbec" default = "true"/>
+    <param name="use_orbbec" value = "$(arg use_orbbec)"/>
+    <arg name = "all_enable" default = "false"/>
+    <arg name = "enable_wrist_camera" default = "false"/>
+    <!-- apriltag continuous detection subscribes to /camera/color/image_raw and runs tag
+         detection on every frame, which costs ~2 CPU cores.  Not needed for VR teleop or
+         data collection, so it can be turned off with enable_apriltag:=false. -->
+    <arg name="enable_apriltag" default="true"/>
+    <arg name="with_wrist_camera" default="$(arg enable_wrist_camera)" />
+
+    <!-- ================= camera bandwidth knobs =================
+         All four cameras share a single USB3 controller (Bus 002, tegra-xusb) and the
+         wired link to the down PC negotiates at 100baseT only (12.5 MB/s ceiling).
+         With head at 1280x800@60 the three colour streams measured ~9.6 MB/s = 77% of
+         that link, and the wrist RealSense cameras were starved: ~15 Hz instead of 30,
+         with stalls up to 7.8 s.  Those stalls exceed the mosaic node's stale_timeout,
+         so the wrist panels blank to black - that is the flicker seen in the headset.
+
+         The head panel in the Quest mosaic is 1920x720 scaled by 0.5 = 960x360, and
+         _fit() letterboxes 1280x800 into it at 576x360.  Sending 60 fps of 1280x800 to
+         draw 576x360 is wasted bandwidth, so the colour profile is exposed as args.
+         Halving both dimensions keeps the 16:10 aspect and therefore the identical
+         rendered size, so try:  head_color_width:=640 head_color_height:=400
+         Verify in the log that the colour stream actually starts before keeping it -
+         the supported profile list is not documented in this SDK build.
+         ========================================================= -->
+    <arg name="head_color_width"   default="1280"/>
+    <arg name="head_color_height"  default="800"/>
+    <arg name="head_color_fps"     default="30"/>
+    <arg name="head_enable_depth"  default="true"/>
+
+    <!-- waist camera currently has zero subscribers; keep it enumerable but cheap -->
+    <arg name="enable_waist_camera" default="true"/>
+    <arg name="waist_color_width"  default="1280"/>
+    <arg name="waist_color_height" default="800"/>
+    <arg name="waist_color_fps"    default="30"/>
+    <arg name="waist_enable_depth" default="true"/>
+
+    <!-- wrist depth/IR have no subscribers, and they compete for the same USB
+         controller as the colour streams the mosaic actually uses -->
+    <arg name="wrist_color_width"  default="640"/>
+    <arg name="wrist_color_height" default="480"/>
+    <arg name="wrist_color_fps"    default="30"/>
+    <arg name="wrist_enable_depth" default="false"/>
+    <arg name="wrist_enable_infra" default="false"/>
+
+    <!-- 启动 orbbec335L相机 -->
+    <include file="$(find orbbec_camera)/launch/gemini_330_series.launch" >
+        <arg name="camera_name"   value="camera" />
+        <arg name="serial_number" value="$(env HEAD_CAMERA_SERIAL_NO)" />
+        <arg name="color_width"   value="$(arg head_color_width)"/>
+        <arg name="color_height"  value="$(arg head_color_height)"/>
+        <arg name="color_fps"     value="$(arg head_color_fps)" />
+        <arg name="enable_depth"  value="$(arg head_enable_depth)"/>
+        <arg name="depth_width"   value="1280"/>
+        <arg name="depth_height"  value="800"/>
+        <arg name="depth_fps"     value="30"/>
+    </include>
+
+    <group if="$(arg enable_waist_camera)">
+      <include file="$(find orbbec_camera)/launch/gemini_330_series.launch" >
+          <arg name="camera_name"   value="waist_camera" />
+          <arg name="serial_number" value="$(env WAIST_CAMERA_SERIAL_NO)" />
+          <arg name="color_width"   value="$(arg waist_color_width)"/>
+          <arg name="color_height"  value="$(arg waist_color_height)"/>
+          <arg name="color_fps"     value="$(arg waist_color_fps)" />
+          <arg name="enable_depth"  value="$(arg waist_enable_depth)"/>
+          <arg name="depth_width"   value="1280"/>
+          <arg name="depth_height"  value="800"/>
+          <arg name="depth_fps"     value="30"/>
+      </include>
+    </group>
+
+    <!-- 启动 手腕realsense相机 -->
+    <group if="$(arg with_wrist_camera)">
+      <include file="$(find realsense2_camera)/launch/rs_camera.launch" >
+        <arg name="camera" value="left_wrist_camera" />
+        <arg name="tf_prefix" value="left_wrist_camera" />
+        <arg name="serial_no" value="$(env LEFT_WRIST_CAMERA_SERIAL_NO)" />
+        <arg name="color_width"   value="$(arg wrist_color_width)"/>
+        <arg name="color_height"  value="$(arg wrist_color_height)"/>
+        <arg name="color_fps"     value="$(arg wrist_color_fps)"/>
+        <arg name="enable_depth"  value="$(arg wrist_enable_depth)"/>
+        <arg name="enable_infra1" value="$(arg wrist_enable_infra)"/>
+        <arg name="enable_infra2" value="$(arg wrist_enable_infra)"/>
+      </include>
+    </group>
+
+    <group if="$(arg with_wrist_camera)">
+      <include file="$(find realsense2_camera)/launch/rs_camera.launch" >
+        <arg name="camera" value="right_wrist_camera" />
+        <arg name="tf_prefix" value="right_wrist_camera" />
+        <arg name="serial_no" value="$(env RIGHT_WRIST_CAMERA_SERIAL_NO)" />
+        <arg name="color_width"   value="$(arg wrist_color_width)"/>
+        <arg name="color_height"  value="$(arg wrist_color_height)"/>
+        <arg name="color_fps"     value="$(arg wrist_color_fps)"/>
+        <arg name="enable_depth"  value="$(arg wrist_enable_depth)"/>
+        <arg name="enable_infra1" value="$(arg wrist_enable_infra)"/>
+        <arg name="enable_infra2" value="$(arg wrist_enable_infra)"/>
+      </include>
+    </group>
+
+    <!-- tf2_ros 静态转换 机器人坐标系下的 camera_base 和 相机urdf里面的 camera_link 进行对齐 -->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="camera_to_real_frame" args="0.02292 0 0 0 0 0 camera_base camera_link" />
+    <!-- tf2_ros 静态转换 机器人坐标系下的 waist_camera 和 相机urdf里面的 waist_camera_link 进行对齐 -->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="waist_camera_to_real_frame" args="0.011715 0.0475 0.014311 0 0 0 waist_camera waist_camera_link" />
+    
+    <!-- tf2_ros 静态转换 适配旧版本仓库代码 -->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_torso" args="0 0 0 0 0 0 base_link torso" /> 
+    <node pkg="tf2_ros" type="static_transform_publisher" name="zhead_1_link_to_head_yaw" args="0 0 0 0 0 0 zhead_1_link head_yaw" />
+    <node pkg="tf2_ros" type="static_transform_publisher" name="zhead_2_link_to_head_pitch" args="0 0 0 0 0 0 zhead_2_link head_pitch" />
+
+    <!-- 启动 apriltag_ros continuous_detection -->
+    <group if="$(arg enable_apriltag)">
+      <include file="$(find apriltag_ros)/launch/continuous_detection.launch">
+        <arg name="camera_name" value="/camera/color" />
+        <arg name="image_topic" value="image_raw" />
+      </include>
+    </group>
+
+    <!-- 启动 ARControlNode -->
+    <node pkg="ar_control" type="ar_control_node.py" name="ar_control_node" output="screen" respawn="true" respawn_delay="5" />
+
+</launch>

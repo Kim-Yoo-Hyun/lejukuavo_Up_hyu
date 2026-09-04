@@ -1,0 +1,19 @@
+[Unit]
+Description=H12Pro Play Node Service
+After=network.target
+
+[Service]
+Type=simple
+User=leju_kuavo
+Environment=KUAVO_ROS_APPLICATION_WS_PATH=/home/leju_kuavo/kuavo_ros_application
+Environment="ROS_DISTRO=noetic"
+Environment=ROS_MASTER_URI=http://kuavo_master:11311
+Environment=ROS_IP=192.168.26.12
+Environment=CAMERA_TYPE=none
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+ExecStart=/home/leju_kuavo/kuavo_ros_application/src/ros_audio/kuavo_audio_player/scripts/start_h12pro_play_node.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
