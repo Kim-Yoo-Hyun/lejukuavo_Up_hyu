@@ -1,0 +1,36 @@
+services:
+  yolo_box_best:
+    image: kuavo/yolo-box:best-pt-ultralytics-8.0.200
+    container_name: kuavo_yolo_box_bestpt
+    runtime: nvidia
+    network_mode: host
+    restart: "no"
+    shm_size: "1gb"
+    working_dir: /opt/yolo_box
+    environment:
+      PYTHONUNBUFFERED: "1"
+      MPLBACKEND: Agg
+      MPLCONFIGDIR: /opt/mplconfig
+      YOLO_CONFIG_DIR: /tmp/ultralytics
+      ROS_MASTER_URI: http://192.168.0.5:11311
+      ROS_IP: 192.168.26.12
+      ROS_HOSTNAME: 192.168.26.12
+      PYTHONPATH: /opt/yolo_box_site:/opt/hostsite:/opt/hostuser:/opt/hostdist:/opt/hostlocal:/opt/ros/noetic/lib/python3/dist-packages:/home/leju_kuavo/kuavo_ros_application/devel/lib/python3/dist-packages
+      LD_LIBRARY_PATH: /opt/hostcuda:/opt/hostlibs:/opt/hostlibs/openblas-pthread:/opt/hostlibs/tegra:/opt/hostusr:/opt/hostlibroot:/opt/hostlibroot/aarch64-linux-gnu:/opt/ros/noetic/lib
+    volumes:
+      - /home/leju_kuavo/kuavo_dataset/diagnostics/yolo_box_best:/outputs
+      - /home/leju_kuavo/yolo_box_docker/models:/models:ro
+      - /opt/ros/noetic:/opt/ros/noetic:ro
+      - /home/leju_kuavo/kuavo_ros_application/devel/lib/python3/dist-packages:/home/leju_kuavo/kuavo_ros_application/devel/lib/python3/dist-packages:ro
+      - /home/leju_kuavo/.venvs/kuavo_yolo/lib/python3.8/site-packages:/opt/hostsite:ro
+      - /home/leju_kuavo/.local/lib/python3.8/site-packages:/opt/hostuser:ro
+      - /usr/lib/python3/dist-packages:/opt/hostdist:ro
+      - /usr/local/lib/python3.8/dist-packages:/opt/hostlocal:ro
+      - /usr/share/matplotlib:/usr/share/matplotlib:ro
+      - /usr/local/cuda-11.4/targets/aarch64-linux/lib:/opt/hostcuda:ro
+      - /usr/lib/aarch64-linux-gnu:/opt/hostlibs:ro
+      - /usr/lib:/opt/hostusr:ro
+      - /lib:/opt/hostlibroot:ro
+    entrypoint: ["/bin/bash", "-lc"]
+    command:
+      - "source /opt/ros/noetic/setup.bash && exec python3 /opt/yolo_box/ros_best_pt_node.py _input_image:=/camera/color/image_raw _model_path:=/models/best.pt _target_class:=package _conf:=0.25 _iou:=0.45 _imgsz:=640"
