@@ -5,7 +5,28 @@ Ultralytics/YOLO-World only. At runtime it read-mounts the validated Jetson
 PyTorch environment and CUDA libraries; nothing in the host venv or ROS
 workspace is modified.
 
-The first test uses a host-side ROS snapshot (`/camera/color/image_raw`) so the
-container does not need to install or alter ROS packages. The container runs
-YOLO-World with the prompt `cardboard box` and writes an annotated image plus a
-JSON detection summary.
+The image contains Ultralytics/YOLO-World only. ROS1, PyTorch, torchvision,
+CUDA, and the camera remain supplied by read-only Jetson host mounts.
+
+## ROS test
+
+On the Jetson:
+
+```bash
+cd ~/yolo_world_docker
+sudo docker compose up -d
+sudo docker compose logs -f
+```
+
+The service subscribes to `/camera/color/image_raw` and publishes:
+
+```text
+/yolo_world/debug/image   sensor_msgs/Image
+/yolo_world/detections    std_msgs/String  # JSON detections
+```
+
+The current Compose defaults are prompt `box`, `conf=0.25`, `iou=0.45`, and
+`imgsz=640`. Stop the test with `sudo docker compose down`.
+
+The standalone image tester is `infer_image.py`; it writes an annotated image
+and JSON summary for a supplied still image.

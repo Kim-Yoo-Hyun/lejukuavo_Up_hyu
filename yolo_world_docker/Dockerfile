@@ -37,6 +37,7 @@ RUN python3 -m pip install --no-cache-dir --no-deps \
     && touch /opt/mplconfig/matplotlibrc
 
 COPY infer_image.py /opt/yolo_world/infer_image.py
+COPY ros_yolo_world_node.py /opt/yolo_world/ros_yolo_world_node.py
 
 WORKDIR /opt/yolo_world
 ENTRYPOINT ["python3", "/opt/yolo_world/infer_image.py"]

@@ -1,0 +1,37 @@
+{
+  "stamp": 1788507426.03123,
+  "frame_id": "camera_color_optical_frame",
+  "input_topic": "/camera/color/image_raw",
+  "prompt": "box",
+  "conf_threshold": 0.25,
+  "iou_threshold": 0.45,
+  "image_size": [
+    1280,
+    800
+  ],
+  "elapsed_ms": 33.9,
+  "detections": [
+    {
+      "class_id": 0,
+      "class_name": "box",
+      "confidence": 0.4477,
+      "xyxy": [
+        242.4,
+        1.6,
+        682.2,
+        287.5
+      ]
+    },
+    {
+      "class_id": 0,
+      "class_name": "box",
+      "confidence": 0.4056,
+      "xyxy": [
+        698.3,
+        0.5,
+        1149.9,
+        310.4
+      ]
+    }
+  ]
+}
